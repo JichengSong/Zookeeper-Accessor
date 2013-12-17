@@ -4,3 +4,7 @@
 *.jar
 *.war
 *.ear
+
+#all dot prefix file and directory
+.*
+.*/
