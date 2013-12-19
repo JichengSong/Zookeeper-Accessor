@@ -56,6 +56,10 @@ public final class Publish {
 	}
 
 	private class EphemeralWatcher implements Watcher {
+		private final Publish publish;
+		public EphemeralWatcher(Publish publish) {
+			this.publish = publish;
+		}
 		@Override
 		public void process(WatchedEvent event) {
 			if (event.getType() == EventType.NodeDataChanged
@@ -65,6 +69,7 @@ public final class Publish {
 					if (!accessor.exist(event.getPath())) {
 						// node disappear
 						accessor.createEphemerlNode(getFullPath(), value);
+						accessor.setDataWatcher(this.publish, getFullPath(), this);
 					} else {
 						// content changed
 						Stat tmpStat = accessor.getStat(getFullPath());
@@ -121,7 +126,7 @@ public final class Publish {
 		this.sharding = sharding;
 		this.key = key;
 		this.value = value;
-		this.ephemeralWatcher = new EphemeralWatcher();
+		this.ephemeralWatcher = new EphemeralWatcher(this);
 	}
 
 	public String getValue() {
