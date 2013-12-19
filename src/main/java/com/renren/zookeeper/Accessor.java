@@ -5,7 +5,9 @@ package com.renren.zookeeper;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,6 +47,7 @@ public class Accessor {
 	private DaemonThread daemon = null;
 	private ZooKeeper zk = null;
 	private ZkConfig config = null;
+	private final int daemonSleepTime = 300;
 
 	private Accessor(ZkConfig config) throws InterruptedException, IOException {
 		logger.info("Try connect to zk with config : " + config.toString());
@@ -68,6 +71,7 @@ public class Accessor {
 			zk = null;
 		}
 		CountDownLatch counter = new CountDownLatch(1);
+		Thread.sleep(new Random().nextInt(10));
 		zk = new ZooKeeper(config.getHost() + "/" + config.getRoot(),
 				config.getSessionTime(), new SessionWatcher(counter));
 		counter.await();
@@ -105,7 +109,7 @@ public class Accessor {
 		public void run() {
 			while (running) {
 				int count = 0;
-				while (running && count < 3) {
+				while (running && count < daemonSleepTime) {
 					try {
 						Thread.sleep(1000);
 					} catch (InterruptedException e) {
@@ -287,16 +291,7 @@ public class Accessor {
 					return;
 				}
 			}
-			EventType type = event.getType();
-			KeeperState state = event.getState();
-			if (event.getType() == EventType.NodeCreated
-					|| event.getType() == EventType.NodeDeleted) {
-				type = EventType.NodeDataChanged;
-				state = KeeperState.Unknown;
-			}
-			WatchedEvent newEvent = new WatchedEvent(type, state,
-					event.getPath());
-			this.getTriggerWatcher().process(newEvent);
+			this.getTriggerWatcher().process(event);
 		}
 	}
 
@@ -409,16 +404,17 @@ public class Accessor {
 		if (!this.isAvailable()) {
 			throw new IOException("ZK is not available.");
 		}
+		publish.setAccessor(this);
 		this.createEphemerlNode(publish.getFullPath(), publish.getValue());
 		Thread.sleep(1000);
 		if (!this.exist(publish.getFullPath())) {
 			// if not exist return immediately with KeepException
+			publish.die();
 			throw new IOException("Internal Error");
 		}
 		this.setDataWatcher(publish, publish.getFullPath(),
 				publish.getEphemeralWatcher());
 		publish.setStat(this.getStat(publish.getFullPath()));
-		publish.setAccessor(this);
 	}
 
 	public void setData(String path, String value) throws KeeperException,
@@ -436,10 +432,27 @@ public class Accessor {
 		}
 		zk.delete(path, -1);
 	}
-	
-//	public void subscribeService(Subscribe subscribe) {
-//		if (!this.isAvailable()) {
-//			throw new IOException("ZK is not available.");
-//		}
-//	}
+
+	public void subscribeService(Subscribe subscribe) throws KeeperException,
+			InterruptedException, IOException, OperationNotSupportedException {
+		if (!this.isAvailable()) {
+			throw new IOException("ZK is not available.");
+		}
+		subscribe.setAccessor(this);
+		/**
+		 * 先initData后setWatcher，有一定的概率导致数据不一致，可追回。
+		 * Zookeeper本身就不是一个强一致性系统，只能保证最终一致。
+		 */
+		subscribe.initData();
+		this.setChildrenWatcher(subscribe, subscribe.getFullPath(),
+				subscribe.getChildrenWatcher());
+	}
+
+	public List<String> getChildren(String path) throws KeeperException,
+			InterruptedException, IOException {
+		if (!this.isAvailable()) {
+			throw new IOException("ZK is not available.");
+		}
+		return zk.getChildren(path, false);
+	}
 }

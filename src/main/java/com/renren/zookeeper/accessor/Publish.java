@@ -58,7 +58,9 @@ public final class Publish {
 	private class EphemeralWatcher implements Watcher {
 		@Override
 		public void process(WatchedEvent event) {
-			if (event.getType() == EventType.NodeDataChanged) {
+			if (event.getType() == EventType.NodeDataChanged
+					|| event.getType() == EventType.NodeDeleted
+					|| event.getType() == EventType.NodeCreated) {
 				try {
 					if (!accessor.exist(event.getPath())) {
 						// node disappear
@@ -66,7 +68,7 @@ public final class Publish {
 					} else {
 						// content changed
 						Stat tmpStat = accessor.getStat(getFullPath());
-						if (tmpStat.getMzxid() > stat.getMzxid()) {
+						if (tmpStat.compareTo(stat) > 0) {
 							stat = tmpStat;
 							value = accessor.getContent(getFullPath());
 						}
