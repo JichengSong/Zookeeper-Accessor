@@ -1,11 +1,11 @@
 package com.renren.zookeeper;
 
 public class Pair<K, V> {
-	public K key;
-	public V value;
+	public K first;
+	public V second;
 
-	public Pair(K key, V value) {
-		this.key = key;
-		this.value = value;
-	} 
+	public Pair(K first, V second) {
+		this.first = first;
+		this.second = second;
+	}
 }

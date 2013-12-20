@@ -47,7 +47,7 @@ public class Accessor {
 	private DaemonThread daemon = null;
 	private ZooKeeper zk = null;
 	private ZkConfig config = null;
-	private final int daemonSleepTime = 300;
+	private final int daemonSleepTime =1;
 
 	private Accessor(ZkConfig config) throws InterruptedException, IOException {
 		logger.info("Try connect to zk with config : " + config.toString());
@@ -71,9 +71,10 @@ public class Accessor {
 			zk = null;
 		}
 		CountDownLatch counter = new CountDownLatch(1);
-		Thread.sleep(new Random().nextInt(10));
+		Thread.sleep(new Random().nextInt(10) * 1000);
 		zk = new ZooKeeper(config.getHost() + "/" + config.getRoot(),
 				config.getSessionTime(), new SessionWatcher(counter));
+		logger.warn("Waiting for connected with server");
 		counter.await();
 		if (config.getUsername() != null && config.getPassword() != null) {
 			zk.addAuthInfo("digest", (config.getUsername() + ":" + config
@@ -126,36 +127,35 @@ public class Accessor {
 			}
 		}
 
-		public void close() {
+		private void close() {
 			running = false;
 		}
 
+		@SuppressWarnings("deprecation")
 		public void triggerAllWatcher() {
-			Set<EventWatcher> keys = dataWatcherMap.keySet();
-			Iterator<EventWatcher> it = keys.iterator();
-			while (it.hasNext()) {
-				Watcher key = it.next();
-				Set<String> value = dataWatcherMap.get(key);
-				Iterator<String> jt = value.iterator();
-				while (jt.hasNext()) {
+			Iterator<Map.Entry<EventWatcher, Set<String>>> iterator = dataWatcherMap
+					.entrySet().iterator();
+			Map.Entry<EventWatcher, Set<String>> entry = null;
+			while (iterator.hasNext()) {
+				entry = iterator.next();
+				Watcher keyWatcher = entry.getKey();
+				for (String item : entry.getValue()) {
 					WatchedEvent event = new WatchedEvent(
 							EventType.NodeDataChanged, KeeperState.Unknown,
-							jt.next());
-					key.process(event);
+							item);
+					keyWatcher.process(event);
 				}
 			}
 
-			keys = childWatcherMap.keySet();
-			it = keys.iterator();
-			while (it.hasNext()) {
-				EventWatcher key = it.next();
-				Set<String> value = childWatcherMap.get(key);
-				Iterator<String> jt = value.iterator();
-				while (jt.hasNext()) {
+			iterator = childWatcherMap.entrySet().iterator();
+			while (iterator.hasNext()) {
+				entry = iterator.next();
+				Watcher keyWatcher = entry.getKey();
+				for (String item : entry.getValue()) {
 					WatchedEvent event = new WatchedEvent(
 							EventType.NodeChildrenChanged, KeeperState.Unknown,
-							jt.next());
-					key.process(event);
+							item);
+					keyWatcher.process(event);
 				}
 			}
 		}
@@ -173,7 +173,6 @@ public class Accessor {
 		public void process(WatchedEvent event) {
 			if (event.getType() == EventType.None) {
 				if (event.getState() == KeeperState.SyncConnected) {
-					logger.warn("Waiting for connected with server");
 					counter.countDown();
 					logger.warn("Connected with server");
 				} else if (event.getState() == KeeperState.Expired) {
@@ -258,9 +257,10 @@ public class Accessor {
 		}
 
 		@Override
-		public void process(WatchedEvent event) {
+		public synchronized void process(WatchedEvent event) {
 			if (this.getWatcherType() == null) { // How can it be null?
 				return;
+
 			} else if (this.getWatcherType() == WatcherType.Children) {
 				if (childWatcherMap.containsKey(this)) {
 					try {
@@ -278,8 +278,7 @@ public class Accessor {
 			} else if (this.getWatcherType() == WatcherType.Data) {
 				if (dataWatcherMap.containsKey(this)) {
 					try {
-						Stat stat = null;
-						zk.getData(event.getPath(), this, stat);
+						zk.exists(event.getPath(), this);
 					} catch (KeeperException e) {
 						logger.error("Event Data Watcher path = "
 								+ event.getPath());
@@ -337,8 +336,7 @@ public class Accessor {
 			throw new IOException("ZK is not available.");
 		}
 		EventWatcher eventWatcher = new EventWatcher(watcher, WatcherType.Data);
-		Stat stat = null;
-		zk.getData(path, eventWatcher, stat);
+		zk.exists(path, eventWatcher);
 		dataOwnerMap.put(owner, eventWatcher);
 		if (!dataWatcherMap.containsKey(eventWatcher)) {
 			dataWatcherMap.put(eventWatcher, new TreeSet<String>());
@@ -362,13 +360,23 @@ public class Accessor {
 		dataOwnerMap.remove(owner);
 	}
 
-	public void createEphemerlNode(String path, String value)
+	public void createEphemerlNode(String path, byte[] value)
 			throws IOException, KeeperException, InterruptedException {
 		if (!this.isAvailable()) {
 			throw new IOException("ZK is not available.");
 		}
-		zk.create(path, value.getBytes(), Ids.OPEN_ACL_UNSAFE,
-				CreateMode.EPHEMERAL);
+		if (value != null && value.length > 1024 * 1024) { // 1M
+			throw new IOException("Value too large.");
+		}
+		while (true) {
+			try {
+				zk.create(path, value, Ids.OPEN_ACL_UNSAFE,
+						CreateMode.EPHEMERAL);
+				break;
+			} catch (KeeperException.ConnectionLossException e) {
+			} catch (KeeperException.NodeExistsException e) {
+			}
+		}
 	}
 
 	public boolean exist(String path) throws IOException, KeeperException,
@@ -389,13 +397,12 @@ public class Accessor {
 		return stat;
 	}
 
-	public String getContent(String path) throws KeeperException,
-			InterruptedException, IOException {
+	public byte[] getContent(String path) throws KeeperException,
+			KeeperException.NoNodeException, InterruptedException, IOException {
 		if (!this.isAvailable()) {
 			throw new IOException("ZK is not available.");
 		}
-		Stat stat = null;
-		return new String(zk.getData(path, false, stat));
+		return zk.getData(path, false, null);
 	}
 
 	public void publishService(Publish publish)
@@ -417,12 +424,15 @@ public class Accessor {
 		publish.setStat(this.getStat(publish.getFullPath()));
 	}
 
-	public void setData(String path, String value) throws KeeperException,
-			InterruptedException, IOException {
+	public void setContent(String path, byte[] value) throws KeeperException,
+			KeeperException.NoNodeException, InterruptedException, IOException {
 		if (!this.isAvailable()) {
 			throw new IOException("ZK is not available.");
 		}
-		this.zk.setData(path, value.getBytes(), -1);
+		if (value != null && value.length > 1024 * 1024) { // 1M
+			throw new IOException("Value too large.");
+		}
+		this.zk.setData(path, value, -1);
 	}
 
 	public void deleteNode(String path) throws InterruptedException,
@@ -454,5 +464,21 @@ public class Accessor {
 			throw new IOException("ZK is not available.");
 		}
 		return zk.getChildren(path, false);
+	}
+
+	public boolean getContentAndStat(String path, Pair<byte[], Stat> ret)
+			throws KeeperException, InterruptedException, IOException {
+		if (!this.isAvailable()) {
+			throw new IOException("ZK is not available.");
+		}
+		try {
+			byte[] value = zk.getData(path, false, ret.second);
+			ret.first = value;
+		} catch (KeeperException.NoNodeException e) {
+			ret.first = null;
+			ret.second = null;
+			return false;
+		}
+		return true;
 	}
 }

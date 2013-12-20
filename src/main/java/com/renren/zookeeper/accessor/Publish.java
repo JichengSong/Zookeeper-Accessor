@@ -4,7 +4,6 @@
 package com.renren.zookeeper.accessor;
 
 import java.io.IOException;
-
 import javax.naming.OperationNotSupportedException;
 
 import org.apache.zookeeper.KeeperException;
@@ -14,6 +13,7 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.data.Stat;
 
 import com.renren.zookeeper.Accessor;
+import com.renren.zookeeper.Pair;
 
 /**
  * <p>
@@ -34,7 +34,7 @@ public final class Publish {
 	private final String sharding;
 	private final String key;
 	private final EphemeralWatcher ephemeralWatcher;
-	private String value;
+	private byte[] value;
 	private Accessor accessor = null;
 	private Stat stat;
 
@@ -57,26 +57,29 @@ public final class Publish {
 
 	private class EphemeralWatcher implements Watcher {
 		private final Publish publish;
+
 		public EphemeralWatcher(Publish publish) {
 			this.publish = publish;
 		}
+
 		@Override
 		public void process(WatchedEvent event) {
 			if (event.getType() == EventType.NodeDataChanged
 					|| event.getType() == EventType.NodeDeleted
 					|| event.getType() == EventType.NodeCreated) {
 				try {
-					if (!accessor.exist(event.getPath())) {
+					Pair<byte[], Stat> pair = new Pair<byte[], Stat>(new byte[1024*1024], new Stat());
+					if (accessor.getContentAndStat(event.getPath(), pair)) {
+						// content changed
+						if (pair.second != null && pair.second.compareTo(stat) > 0) {
+							stat = pair.second;
+							value = pair.first;
+						} // else ignore this event
+					} else {
 						// node disappear
 						accessor.createEphemerlNode(getFullPath(), value);
-						accessor.setDataWatcher(this.publish, getFullPath(), this);
-					} else {
-						// content changed
-						Stat tmpStat = accessor.getStat(getFullPath());
-						if (tmpStat.compareTo(stat) > 0) {
-							stat = tmpStat;
-							value = accessor.getContent(getFullPath());
-						}
+						accessor.setDataWatcher(this.publish, getFullPath(),
+								this);
 					}
 				} catch (IOException e) {
 					e.printStackTrace();
@@ -120,7 +123,7 @@ public final class Publish {
 	}
 
 	public Publish(String serviceId, String version, String sharding,
-			String key, String value) {
+			String key, byte[] value) {
 		this.serviceId = serviceId;
 		this.version = version;
 		this.sharding = sharding;
@@ -129,14 +132,14 @@ public final class Publish {
 		this.ephemeralWatcher = new EphemeralWatcher(this);
 	}
 
-	public String getValue() {
+	public byte[] getValue() {
 		return value;
 	}
 
-	public void setValue(String value) throws KeeperException,
+	public void setValue(byte[] value) throws KeeperException,
 			InterruptedException, IOException {
 		if (accessor != null) {
-			accessor.setData(getFullPath(), value);
+			accessor.setContent(getFullPath(), value);
 		}
 		this.value = value;
 	}

@@ -3,14 +3,24 @@
  */
 package com.renren.zookeeper.accessor;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.naming.OperationNotSupportedException;
 
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.Watcher.Event.EventType;
+import org.apache.zookeeper.data.Stat;
 
 import com.renren.zookeeper.Accessor;
+import com.renren.zookeeper.Pair;
 
 /**
  * @author ZheYuan
@@ -21,6 +31,92 @@ public abstract class Subscribe {
 	private final String version;
 	private final String sharding;
 	private Accessor accessor = null;
+	private final ChildrenWatcher childrenWatcher;
+	private List<String> endpoints = null;
+	private Map<String, Endpoint> endpointStatMap = null;
+
+	public void initData() throws RuntimeException, KeeperException,
+			InterruptedException, IOException {
+		if (this.getAccessor() != null) {
+			endpoints = this.getAccessor().getChildren(this.getFullPath());
+			Collections.sort(endpoints);
+			this.childChanged(null, endpoints, null);
+			Iterator<String> endpoint = endpoints.iterator();
+			while (endpoint.hasNext()) {
+				String node = endpoint.next();
+				Pair<byte[], Stat> pair = new Pair<byte[], Stat>(
+						new byte[1024 * 1024], new Stat());
+				if (accessor.getContentAndStat(this.getFullPath() + '/' + node,
+						pair)) { // node exist
+					endpointStatMap.put(node, new Endpoint(node, pair.first,
+							pair.second));
+					accessor.setDataWatcher(endpointStatMap.get(node),
+							this.getFullPath() + '/' + node, endpointStatMap
+									.get(node).getContentWatcher());
+				}
+			}
+		} else {
+			throw new RuntimeException("Accessor have not set.");
+		}
+	}
+
+	private class Endpoint {
+		private final String node;
+		private Stat stat;
+		private byte[] value;
+		private final ContentWatcher contentWatcher;
+
+		/**
+		 * @return the contentWatcher
+		 */
+		public ContentWatcher getContentWatcher() {
+			return contentWatcher;
+		}
+
+		public Endpoint(String node, byte[] value, Stat stat) {
+			this.node = node;
+			this.value = value;
+			this.stat = stat;
+			contentWatcher = new ContentWatcher();
+		}
+
+		/**
+		 * @return the stat
+		 */
+		public Stat getStat() {
+			return stat;
+		}
+
+		/**
+		 * @param stat
+		 *            the stat to set
+		 */
+		public void setStat(Stat stat) {
+			this.stat = stat;
+		}
+
+		/**
+		 * @return the value
+		 */
+		public byte[] getValue() {
+			return value;
+		}
+
+		/**
+		 * @param value
+		 *            the value to set
+		 */
+		public void setValue(byte[] value) {
+			this.value = value;
+		}
+
+		/**
+		 * @return the node
+		 */
+		public String getNode() {
+			return node;
+		}
+	}
 
 	public synchronized void setAccessor(Accessor accessor)
 			throws OperationNotSupportedException {
@@ -51,6 +147,8 @@ public abstract class Subscribe {
 		this.serviceId = serviceId;
 		this.version = version;
 		this.sharding = sharding;
+		childrenWatcher = new ChildrenWatcher();
+		endpointStatMap = new ConcurrentHashMap<String, Endpoint>();
 	}
 
 	/**
@@ -63,28 +161,161 @@ public abstract class Subscribe {
 		return '/' + getServiceId() + '/' + getVersion() + '/' + getSharding();
 	}
 
+	/**
+	 * @return the childrenWatcher
+	 */
+	public ChildrenWatcher getChildrenWatcher() {
+		return childrenWatcher;
+	}
+
 	private class ChildrenWatcher implements Watcher {
 
 		@Override
 		public void process(WatchedEvent event) {
-			// TODO Auto-generated method stub
+			if (event.getType() == EventType.NodeChildrenChanged) {
+				try {
+					List<String> removeList = new ArrayList<String>();
+					List<String> addList = new ArrayList<String>();
+					List<String> oldChildrenList = endpoints;
+					List<String> newChildrenList = accessor.getChildren(event
+							.getPath());
+					Collections.sort(newChildrenList);
+					endpoints = newChildrenList;
+					int oldPos = 0, newPos = 0;
+					while (oldPos < oldChildrenList.size()
+							&& newPos < newChildrenList.size()) {
+						String oldChild = oldChildrenList.get(oldPos);
+						String newChild = newChildrenList.get(newPos);
+						if (newChild.compareTo(oldChild) < 0) { // add
+							Pair<byte[], Stat> pair = new Pair<byte[], Stat>(
+									new byte[1024 * 1024], new Stat());
+							if (accessor.getContentAndStat(getFullPath() + '/'
+									+ newChild, pair)) {
+								endpointStatMap.put(newChild, new Endpoint(
+										newChild, pair.first, pair.second));
+								accessor.setDataWatcher(endpointStatMap
+										.get(newChild), getFullPath() + '/'
+										+ newChild,
+										endpointStatMap.get(newChild)
+												.getContentWatcher());
+								addList.add(newChild);
+							}
+							newPos++;
+						} else if (newChild.compareTo(oldChild) > 0) { // remove
+							accessor.delDataWatcher(endpointStatMap
+									.get(oldChild));
+							endpointStatMap.remove(oldChild);
+							removeList.add(oldChild);
+							oldPos++;
+						} else { // equal
+							Stat newStat = accessor.getStat(getFullPath() + '/'
+									+ newChild);
+							Endpoint oldEndpoint = endpointStatMap
+									.get(oldChild);
+							Stat oldStat = oldEndpoint.getStat();
+							if (newStat.compareTo(oldStat) > 0) { // remove-add
+																	// or data
+																	// watcher
+																	// loss
+								oldEndpoint.setStat(newStat);
+								oldEndpoint.setValue(accessor
+										.getContent(getFullPath() + '/'
+												+ newChild));
+								addList.add(newChild);
+								removeList.add(oldChild);
+							}
+							oldPos++;
+							newPos++;
+						}
+					}
+
+					if (newPos < newChildrenList.size()) {
+						while (newPos < newChildrenList.size()) {
+							String newChild = newChildrenList.get(newPos);
+							Pair<byte[], Stat> pair = new Pair<byte[], Stat>(
+									new byte[1024 * 1024], new Stat());
+							if (accessor.getContentAndStat(getFullPath() + '/'
+									+ newChild, pair)) {
+								endpointStatMap.put(newChild, new Endpoint(
+										newChild, pair.first, pair.second));
+								accessor.setDataWatcher(endpointStatMap
+										.get(newChild), getFullPath() + '/'
+										+ newChild,
+										endpointStatMap.get(newChild)
+												.getContentWatcher());
+								addList.add(newChild);
+							}
+							newPos++;
+						}
+					} else if (oldPos < oldChildrenList.size()) {
+						while (oldPos < oldChildrenList.size()) {
+							String oldChild = oldChildrenList.get(oldPos);
+							accessor.delDataWatcher(endpointStatMap
+									.get(oldChild));
+							endpointStatMap.remove(oldChild);
+							removeList.add(oldChild);
+							oldPos++;
+						}
+					}
+					childChanged(oldChildrenList, addList, removeList);
+				} catch (KeeperException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+
+			}
 
 		}
-
 	}
 
 	private class ContentWatcher implements Watcher {
 
 		@Override
 		public void process(WatchedEvent event) {
-
+			if (event.getType() == EventType.NodeDataChanged) {
+				try {
+					String endpoint = event.getPath().substring(
+							getFullPath().length() + 1);
+					Endpoint oldEndpoint = endpointStatMap.get(endpoint);
+					byte[] oldValue = oldEndpoint.getValue();
+					Stat newStat = accessor.getStat(event.getPath());
+					byte[] newValue = accessor.getContent(event.getPath());
+					if (newStat.compareTo(oldEndpoint.getStat()) > 0) { // new
+																		// value
+																		// instead
+																		// of
+																		// old
+																		// value
+						oldEndpoint.setStat(newStat);
+						oldEndpoint.setValue(newValue);
+						contentChanged(event.getPath(), oldValue, newValue);
+					}
+				} catch (IOException e) {
+					e.printStackTrace();
+				} catch (KeeperException e) {
+					e.printStackTrace();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 
+	}
+
+	public byte[] getContent(String child) throws KeeperException,
+			InterruptedException, IOException {
+		return accessor.getContent(getFullPath() + '/' + child);
 	}
 
 	public abstract void childChanged(List<String> originList,
 			List<String> increaceList, List<String> decreaceList);
 
-	public abstract void contentChanged(String path, String oldValue,
-			String newValue);
+	public abstract void contentChanged(String path, byte[] oldValue,
+			byte[] newValue);
 }
