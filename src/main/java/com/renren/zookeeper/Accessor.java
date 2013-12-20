@@ -47,7 +47,7 @@ public class Accessor {
 	private DaemonThread daemon = null;
 	private ZooKeeper zk = null;
 	private ZkConfig config = null;
-	private final int daemonSleepTime =1;
+	private final int daemonSleepTime = 300;  // 5min
 
 	private Accessor(ZkConfig config) throws InterruptedException, IOException {
 		logger.info("Try connect to zk with config : " + config.toString());
