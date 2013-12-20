@@ -8,3 +8,9 @@
 #all dot prefix file and directory
 .*
 .*/
+
+#eclipse target directory
+/target/*
+
+#debug log file
+/zkaccessor.log*
