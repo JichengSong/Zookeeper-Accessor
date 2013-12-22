@@ -3,17 +3,9 @@
  */
 package com.renren.zookeeper;
 
-import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.nio.ByteBuffer;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
-import org.apache.zookeeper.common.PathUtils;
-import org.apache.zookeeper.server.ByteBufferInputStream;
-
-import com.sun.mail.util.LineInputStream;
 
 /**
  * @author ZheYuan
