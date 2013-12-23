@@ -10,7 +10,8 @@
 .*/
 
 #eclipse target directory
-/target/*
+/target
 
 #debug log file
 /zkaccessor.log*
+/bin
