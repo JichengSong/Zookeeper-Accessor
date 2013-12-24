@@ -28,10 +28,10 @@ public class ZkConfig {
 	}
 
 	public String toString() {
-		return "HOST=" + host
-			 + "root=" + root
-			 + "username=" + username
-			 + "pasword=" + password
+		return "HOST=" + host + " "
+			 + "root=" + root + " "
+			 + "username=" + username + " "
+			 + "pasword=" + password + " "
 			 + "sessionTime=" + sessionTime;
 	}
 	
