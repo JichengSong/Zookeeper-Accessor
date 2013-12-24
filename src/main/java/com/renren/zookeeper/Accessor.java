@@ -48,7 +48,7 @@ public class Accessor {
 	private DaemonThread daemon = null;
 	private ZooKeeper zk = null;
 	private ZkConfig config = null;
-	private final int daemonSleepTime = 300;  // 5min
+	private final int daemonSleepTime = 300; // 5min
 
 	private Accessor(ZkConfig config) throws InterruptedException, IOException {
 		logger.info("Try connect to zk with config : " + config.toString());
@@ -138,29 +138,31 @@ public class Accessor {
 
 		@SuppressWarnings("deprecation")
 		public void triggerAllWatcher() {
-			Iterator<Map.Entry<EventWatcher, Set<String>>> iterator = dataWatcherMap
-					.entrySet().iterator();
-			Map.Entry<EventWatcher, Set<String>> entry = null;
-			while (iterator.hasNext()) {
-				entry = iterator.next();
-				Watcher keyWatcher = entry.getKey();
-				for (String item : entry.getValue()) {
-					WatchedEvent event = new WatchedEvent(
-							EventType.NodeDataChanged, KeeperState.Unknown,
-							item);
-					keyWatcher.process(event);
+			synchronized (parent.zk) {
+				Iterator<Map.Entry<EventWatcher, Set<String>>> iterator = dataWatcherMap
+						.entrySet().iterator();
+				Map.Entry<EventWatcher, Set<String>> entry = null;
+				while (iterator.hasNext()) {
+					entry = iterator.next();
+					Watcher keyWatcher = entry.getKey();
+					for (String item : entry.getValue()) {
+						WatchedEvent event = new WatchedEvent(
+								EventType.NodeDataChanged, KeeperState.Unknown,
+								item);
+						keyWatcher.process(event);
+					}
 				}
-			}
 
-			iterator = childWatcherMap.entrySet().iterator();
-			while (iterator.hasNext()) {
-				entry = iterator.next();
-				Watcher keyWatcher = entry.getKey();
-				for (String item : entry.getValue()) {
-					WatchedEvent event = new WatchedEvent(
-							EventType.NodeChildrenChanged, KeeperState.Unknown,
-							item);
-					keyWatcher.process(event);
+				iterator = childWatcherMap.entrySet().iterator();
+				while (iterator.hasNext()) {
+					entry = iterator.next();
+					Watcher keyWatcher = entry.getKey();
+					for (String item : entry.getValue()) {
+						WatchedEvent event = new WatchedEvent(
+								EventType.NodeChildrenChanged,
+								KeeperState.Unknown, item);
+						keyWatcher.process(event);
+					}
 				}
 			}
 		}
@@ -264,40 +266,42 @@ public class Accessor {
 		}
 
 		@Override
-		public synchronized void process(WatchedEvent event) {
-			if (this.getWatcherType() == null) { // How can it be null?
-				return;
+		public void process(WatchedEvent event) {
+			synchronized (zk) {
+				if (this.getWatcherType() == null) { // How can it be null?
+					return;
 
-			} else if (this.getWatcherType() == WatcherType.Children) {
-				if (childWatcherMap.containsKey(this)) {
-					try {
-						zk.getChildren(event.getPath(), this);
-					} catch (KeeperException e) {
-						logger.error("Event Children Watcher path = "
-								+ event.getPath());
-						e.printStackTrace();
-					} catch (InterruptedException e) {
-						e.printStackTrace();
+				} else if (this.getWatcherType() == WatcherType.Children) {
+					if (childWatcherMap.containsKey(this)) {
+						try {
+							zk.getChildren(event.getPath(), this);
+						} catch (KeeperException e) {
+							logger.error("Event Children Watcher path = "
+									+ event.getPath());
+							e.printStackTrace();
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+					} else {
+						return;
 					}
-				} else {
-					return;
-				}
-			} else if (this.getWatcherType() == WatcherType.Data) {
-				if (dataWatcherMap.containsKey(this)) {
-					try {
-						zk.exists(event.getPath(), this);
-					} catch (KeeperException e) {
-						logger.error("Event Data Watcher path = "
-								+ event.getPath());
-						e.printStackTrace();
-					} catch (InterruptedException e) {
-						e.printStackTrace();
+				} else if (this.getWatcherType() == WatcherType.Data) {
+					if (dataWatcherMap.containsKey(this)) {
+						try {
+							zk.exists(event.getPath(), this);
+						} catch (KeeperException e) {
+							logger.error("Event Data Watcher path = "
+									+ event.getPath());
+							e.printStackTrace();
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+					} else {
+						return;
 					}
-				} else {
-					return;
 				}
+				this.getTriggerWatcher().process(event);
 			}
-			this.getTriggerWatcher().process(event);
 		}
 	}
 

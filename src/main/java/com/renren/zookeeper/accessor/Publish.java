@@ -77,7 +77,7 @@ public final class Publish {
 					Pair<byte[], Stat> pair = new Pair<byte[], Stat>(new byte[1024*1024], new Stat());
 					if (accessor.getContentAndStat(event.getPath(), pair)) {
 						// content changed
-						if (pair.second != null && pair.second.compareTo(stat) > 0) {
+						if (pair.second.compareTo(stat) > 0) {
 							stat = pair.second;
 							value = pair.first;
 						} // else ignore this event

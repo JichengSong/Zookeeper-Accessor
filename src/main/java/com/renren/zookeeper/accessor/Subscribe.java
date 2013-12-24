@@ -13,6 +13,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.naming.OperationNotSupportedException;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -27,6 +29,8 @@ import com.renren.zookeeper.Pair;
  * 
  */
 public abstract class Subscribe {
+	private static Logger logger = LogManager.getLogger(Subscribe.class
+			.getName());
 	private final String serviceId;
 	private final String version;
 	private final String sharding;
@@ -208,20 +212,27 @@ public abstract class Subscribe {
 							removeList.add(oldChild);
 							oldPos++;
 						} else { // equal
-							Stat newStat = accessor.getStat(getFullPath() + '/'
-									+ newChild);
 							Endpoint oldEndpoint = endpointStatMap
 									.get(oldChild);
 							Stat oldStat = oldEndpoint.getStat();
-							if (newStat.compareTo(oldStat) > 0) { // remove-add
-																	// or data
-																	// watcher
-																	// loss
-								oldEndpoint.setStat(newStat);
-								oldEndpoint.setValue(accessor
-										.getContent(getFullPath() + '/'
-												+ newChild));
-								addList.add(newChild);
+							Pair<byte[], Stat> pair = new Pair<byte[], Stat>(
+									new byte[1024 * 1024], new Stat());
+							if (accessor.getContentAndStat(getFullPath() + '/'
+									+ newChild, pair)) {
+								if (pair.second.compareTo(oldStat) > 0) { // remove-add
+																			// or
+																			// data
+																			// watcher
+																			// loss
+									oldEndpoint.setStat(pair.second);
+									oldEndpoint.setValue(pair.first);
+									addList.add(newChild);
+									removeList.add(oldChild);
+								}
+							} else {
+								accessor.delDataWatcher(endpointStatMap
+										.get(oldChild));
+								endpointStatMap.remove(oldChild);
 								removeList.add(oldChild);
 							}
 							oldPos++;
@@ -283,18 +294,21 @@ public abstract class Subscribe {
 					String endpoint = event.getPath().substring(
 							getFullPath().length() + 1);
 					Endpoint oldEndpoint = endpointStatMap.get(endpoint);
+					Pair<byte[], Stat> pair = new Pair<byte[], Stat>(
+							new byte[1024 * 1024], new Stat());
 					byte[] oldValue = oldEndpoint.getValue();
-					Stat newStat = accessor.getStat(event.getPath());
-					byte[] newValue = accessor.getContent(event.getPath());
-					if (newStat.compareTo(oldEndpoint.getStat()) > 0) { // new
-																		// value
-																		// instead
-																		// of
-																		// old
-																		// value
-						oldEndpoint.setStat(newStat);
-						oldEndpoint.setValue(newValue);
-						contentChanged(event.getPath(), oldValue, newValue);
+					if (accessor.getContentAndStat(event.getPath(), pair)) {
+						if (pair.second.compareTo(oldEndpoint.getStat()) > 0) { // new
+							// value
+							// instead
+							// of
+							// old
+							// value
+							oldEndpoint.setStat(pair.second);
+							oldEndpoint.setValue(pair.first);
+							contentChanged(event.getPath(), oldValue,
+									pair.first);
+						}
 					}
 				} catch (IOException e) {
 					e.printStackTrace();
