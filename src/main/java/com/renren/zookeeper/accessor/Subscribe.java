@@ -270,13 +270,16 @@ public abstract class Subscribe {
 					}
 					childChanged(oldChildrenList, addList, removeList);
 				} catch (KeeperException e) {
-					// TODO Auto-generated catch block
+					logger.error("When children callback process, "
+							+ e.getMessage());
 					e.printStackTrace();
 				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
+					logger.error("When children callback process, "
+							+ e.getMessage());
 					e.printStackTrace();
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
+					logger.error("When children callback process, "
+							+ e.getMessage());
 					e.printStackTrace();
 				}
 
@@ -299,11 +302,11 @@ public abstract class Subscribe {
 					byte[] oldValue = oldEndpoint.getValue();
 					if (accessor.getContentAndStat(event.getPath(), pair)) {
 						if (pair.second.compareTo(oldEndpoint.getStat()) > 0) { // new
-							// value
-							// instead
-							// of
-							// old
-							// value
+																				// value
+																				// instead
+																				// of
+																				// old
+																				// value
 							oldEndpoint.setStat(pair.second);
 							oldEndpoint.setValue(pair.first);
 							contentChanged(event.getPath(), oldValue,
@@ -311,10 +314,16 @@ public abstract class Subscribe {
 						}
 					}
 				} catch (IOException e) {
+					logger.error("When content callback process, "
+							+ e.getMessage());
 					e.printStackTrace();
 				} catch (KeeperException e) {
+					logger.error("When content callback process, "
+							+ e.getMessage());
 					e.printStackTrace();
 				} catch (InterruptedException e) {
+					logger.error("When content callback process, "
+							+ e.getMessage());
 					e.printStackTrace();
 				}
 			}
