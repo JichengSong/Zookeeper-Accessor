@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import javax.naming.OperationNotSupportedException;
 
@@ -75,7 +76,11 @@ public class Accessor {
 		zk = new ZooKeeper(config.getHost() + "/" + config.getRoot(),
 				config.getSessionTime(), new SessionWatcher(counter));
 		logger.warn("Waiting for connected with server");
-		counter.await();
+		if (!counter.await(config.getInitTime(), TimeUnit.MILLISECONDS)) {
+			zk.close();
+			zk = null;
+			throw new IOException("Can't connect zookeeper.");
+		}
 		if (config.getUsername() != null && config.getPassword() != null) {
 			zk.addAuthInfo("digest", (config.getUsername() + ":" + config
 					.getPassword()).getBytes());

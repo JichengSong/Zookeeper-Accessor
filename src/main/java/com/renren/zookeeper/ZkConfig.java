@@ -17,7 +17,16 @@ public class ZkConfig {
 	private String username = null;
 	private String password = null;
 	private int sessionTime;
+	private int initTime;
 	
+	public int getInitTime() {
+		return initTime;
+	}
+
+	public void setInitTime(int initTime) {
+		this.initTime = initTime;
+	}
+
 	public String toString() {
 		return "HOST=" + host
 			 + "root=" + root
@@ -27,6 +36,7 @@ public class ZkConfig {
 	}
 	
 	public ZkConfig() {
+		initTime = 10000;
 		sessionTime = 10000;
 		if (System.getProperty("default.config.path") != null) {
 			String path = System.getProperty("default.config.path") + "./zk.conf";
