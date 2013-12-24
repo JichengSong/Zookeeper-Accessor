@@ -4,8 +4,11 @@
 package com.renren.zookeeper.accessor;
 
 import java.io.IOException;
+
 import javax.naming.OperationNotSupportedException;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -29,6 +32,9 @@ import com.renren.zookeeper.Pair;
  *              sharding, key, end));
  */
 public final class Publish {
+	private static Logger logger = LogManager.getLogger(Publish.class
+			.getName());
+	
 	private final String serviceId;
 	private final String version;
 	private final String sharding;
@@ -82,10 +88,13 @@ public final class Publish {
 								this);
 					}
 				} catch (IOException e) {
+					logger.error("When callback process, " + e.getMessage());
 					e.printStackTrace();
 				} catch (KeeperException e) {
+					logger.error("When callback process, " + e.getMessage());
 					e.printStackTrace();
 				} catch (InterruptedException e) {
+					logger.error("When callback process, " + e.getMessage());
 					e.printStackTrace();
 				}
 			}
@@ -173,10 +182,13 @@ public final class Publish {
 		try {
 			die();
 		} catch (InterruptedException e) {
+			logger.error("When publish destory, " + e.getMessage());
 			e.printStackTrace();
 		} catch (KeeperException e) {
+			logger.error("When publish destory, " + e.getMessage());
 			e.printStackTrace();
 		} catch (IOException e) {
+			logger.error("When publish destory, " + e.getMessage());
 			e.printStackTrace();
 		}
 	}
