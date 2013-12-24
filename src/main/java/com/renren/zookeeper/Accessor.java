@@ -189,6 +189,7 @@ public class Accessor {
 							daemon.triggerAllWatcher();
 							connected = true;
 						} catch (InterruptedException e) {
+							logger.error("Fail to re-connect zookeeper");
 							e.printStackTrace();
 							try {
 								Thread.sleep(20000);
@@ -196,6 +197,7 @@ public class Accessor {
 								e1.printStackTrace();
 							}
 						} catch (IOException e) {
+							logger.error("Fail to re-connect zookeeper");
 							e.printStackTrace(System.err);
 							try {
 								Thread.sleep(20000);
