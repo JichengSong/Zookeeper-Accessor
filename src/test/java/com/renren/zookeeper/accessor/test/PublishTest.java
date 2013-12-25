@@ -23,12 +23,6 @@ public class PublishTest {
 	 */
 	public static void main(String[] args) {
 		ZkConfig config = new ZkConfig();
-		config.setHost("xcszookeepertest.n.xiaonei.com");
-		config.setHost("localhost");
-		config.setSessionTime(4000);
-		config.setRoot("xcs-test");
-		config.setUsername("test");
-		config.setPassword("test");
 		try {
 			Accessor accessor = Accessor.getInstance(config);
 			accessor.publishService(new Publish("test.service", "1", "0",

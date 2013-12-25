@@ -48,12 +48,6 @@ public class SubscribeTest {
 	public static void main(String[] args) {
 		SubscribeInstance subscribe = new SubscribeInstance();
 		ZkConfig config = new ZkConfig();
-		config.setHost("xcszookeepertest.n.xiaonei.com:2181");
-		config.setHost("localhost");
-		config.setSessionTime(5000);
-		config.setRoot("xcs-test");
-		config.setUsername("test");
-		config.setPassword("test");
 		try {
 			Accessor accessor = Accessor.getInstance(config);
 			accessor.subscribeService(subscribe);
