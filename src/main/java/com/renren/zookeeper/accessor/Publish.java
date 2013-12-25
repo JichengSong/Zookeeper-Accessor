@@ -32,9 +32,9 @@ import com.renren.zookeeper.Pair;
  *              sharding, key, end));
  */
 public final class Publish {
-	private static Logger logger = LogManager.getLogger(Publish.class
-			.getName());
-	
+	private static Logger logger = LogManager
+			.getLogger(Publish.class.getName());
+
 	private final String serviceId;
 	private final String version;
 	private final String sharding;
@@ -74,7 +74,8 @@ public final class Publish {
 					|| event.getType() == EventType.NodeDeleted
 					|| event.getType() == EventType.NodeCreated) {
 				try {
-					Pair<byte[], Stat> pair = new Pair<byte[], Stat>(new byte[1024*1024], new Stat());
+					Pair<byte[], Stat> pair = new Pair<byte[], Stat>(
+							new byte[1024 * 1024], new Stat());
 					if (accessor.getContentAndStat(event.getPath(), pair)) {
 						// content changed
 						if (pair.second.compareTo(stat) > 0) {
@@ -87,13 +88,7 @@ public final class Publish {
 						accessor.setDataWatcher(this.publish, getFullPath(),
 								this);
 					}
-				} catch (IOException e) {
-					logger.error("When callback process, " + e.getMessage());
-					e.printStackTrace();
-				} catch (KeeperException e) {
-					logger.error("When callback process, " + e.getMessage());
-					e.printStackTrace();
-				} catch (InterruptedException e) {
+				} catch (Exception e) {
 					logger.error("When callback process, " + e.getMessage());
 					e.printStackTrace();
 				}
@@ -181,13 +176,7 @@ public final class Publish {
 	protected void finalize() {
 		try {
 			die();
-		} catch (InterruptedException e) {
-			logger.error("When publish destory, " + e.getMessage());
-			e.printStackTrace();
-		} catch (KeeperException e) {
-			logger.error("When publish destory, " + e.getMessage());
-			e.printStackTrace();
-		} catch (IOException e) {
+		} catch (Exception e) {
 			logger.error("When publish destory, " + e.getMessage());
 			e.printStackTrace();
 		}

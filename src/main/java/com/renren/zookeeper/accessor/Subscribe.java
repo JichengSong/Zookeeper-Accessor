@@ -269,15 +269,7 @@ public abstract class Subscribe {
 						}
 					}
 					childChanged(oldChildrenList, addList, removeList);
-				} catch (KeeperException e) {
-					logger.error("When children callback process, "
-							+ e.getMessage());
-					e.printStackTrace();
-				} catch (InterruptedException e) {
-					logger.error("When children callback process, "
-							+ e.getMessage());
-					e.printStackTrace();
-				} catch (IOException e) {
+				} catch (Exception e) {
 					logger.error("When children callback process, "
 							+ e.getMessage());
 					e.printStackTrace();
@@ -313,15 +305,7 @@ public abstract class Subscribe {
 									pair.first);
 						}
 					}
-				} catch (IOException e) {
-					logger.error("When content callback process, "
-							+ e.getMessage());
-					e.printStackTrace();
-				} catch (KeeperException e) {
-					logger.error("When content callback process, "
-							+ e.getMessage());
-					e.printStackTrace();
-				} catch (InterruptedException e) {
+				} catch (Exception e) {
 					logger.error("When content callback process, "
 							+ e.getMessage());
 					e.printStackTrace();
