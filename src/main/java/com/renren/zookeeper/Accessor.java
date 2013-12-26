@@ -448,10 +448,20 @@ public class Accessor {
 			throw new IOException("ZK is not available.");
 		}
 		publish.setAccessor(this);
-		this.createEphemerlNode(publish.getFullPath(), publish.getValue());
-		Thread.sleep(1000);
+		while (true) {
+			try {
+				this.createEphemerlNode(publish.getFullPath(),
+						publish.getValue());
+				Thread.sleep(1000);
+				break;
+			} catch (KeeperException.NodeExistsException e) {
+				logger.warn("Node exists with path " + publish.getFullPath()
+						+ new String(publish.getValue()) + ". Sleep 10s and re-try.");
+				Thread.sleep(10000);
+			}
+		}
 		if (!this.exist(publish.getFullPath())) {
-			// if not exist return immediately with KeepException
+			// if not exist return immediately with IOException
 			publish.die();
 			throw new IOException("Internal Error");
 		}
