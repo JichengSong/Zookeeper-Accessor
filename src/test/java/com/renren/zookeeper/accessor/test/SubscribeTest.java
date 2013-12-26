@@ -3,12 +3,7 @@
  */
 package com.renren.zookeeper.accessor.test;
 
-import java.io.IOException;
 import java.util.List;
-
-import javax.naming.OperationNotSupportedException;
-
-import org.apache.zookeeper.KeeperException;
 
 import com.renren.zookeeper.Accessor;
 import com.renren.zookeeper.ZkConfig;
@@ -24,6 +19,10 @@ public class SubscribeTest {
 
 		public SubscribeInstance() {
 			super("test.service", "1", "0");
+		}
+		
+		public SubscribeInstance(String serviceId, String version, String stat) {
+			super(serviceId, version, stat);
 		}
 		
 		@Override
@@ -51,6 +50,7 @@ public class SubscribeTest {
 		try {
 			Accessor accessor = Accessor.getInstance(config);
 			accessor.subscribeService(subscribe);
+			subscribe.die();
 			while (true) {
 			
 			}

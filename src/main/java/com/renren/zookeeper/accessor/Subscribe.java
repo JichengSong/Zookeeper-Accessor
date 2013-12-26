@@ -315,6 +315,23 @@ public abstract class Subscribe {
 
 	}
 
+	public void die() {
+		if (accessor != null) {
+			accessor.delChildrenWatcher(this);
+			accessor.delDataWatcher(this);
+		}
+	}
+	
+	@Override
+	protected void finalize() {
+		try {
+			die();
+		} catch (Exception e) {
+			logger.error("When subscribe destory, " + e.getMessage());
+			e.printStackTrace();
+		}
+	}
+	
 	public byte[] getContent(String child) throws KeeperException,
 			InterruptedException, IOException {
 		return accessor.getContent(getFullPath() + '/' + child);

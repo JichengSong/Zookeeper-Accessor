@@ -3,11 +3,6 @@
  */
 package com.renren.zookeeper.accessor.test;
 
-import java.io.IOException;
-import javax.naming.OperationNotSupportedException;
-
-import org.apache.zookeeper.KeeperException;
-
 import com.renren.zookeeper.Accessor;
 import com.renren.zookeeper.ZkConfig;
 import com.renren.zookeeper.accessor.Publish;
