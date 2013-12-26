@@ -210,8 +210,33 @@ public class Accessor {
 					}
 				} else if (event.getState() == KeeperState.AuthFailed) {
 					logger.error("Auth failed! Check username and password are correct and contact adminstrator.");
+					System.exit(1);
 				} else if (event.getState() == KeeperState.Disconnected) {
 					logger.error("Disconnected with zookeeper.");
+					boolean connected = false;
+					while (!connected) {
+						try {
+							createConnection(config);
+							daemon.triggerAllWatcher();
+							connected = true;
+						} catch (InterruptedException e) {
+							logger.error("Fail to re-connect zookeeper");
+							e.printStackTrace();
+							try {
+								Thread.sleep(20000);
+							} catch (InterruptedException e1) {
+								e1.printStackTrace();
+							}
+						} catch (IOException e) {
+							logger.error("Fail to re-connect zookeeper");
+							e.printStackTrace(System.err);
+							try {
+								Thread.sleep(20000);
+							} catch (InterruptedException e1) {
+								e1.printStackTrace();
+							}
+						}
+					}
 				}
 			}
 		}
