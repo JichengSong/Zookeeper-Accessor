@@ -27,6 +27,18 @@ public class ZkConfig {
 		this.initTime = initTime;
 	}
 
+	@Override
+	public boolean equals(Object o) {
+		ZkConfig config = (ZkConfig) o;
+		return this.getHost().equals(config.getHost())
+				&& this.getRoot().equals(config.getRoot())
+				&& this.getUsername().equals(config.getUsername())
+				&& this.getPassword().equals(config.getPassword())
+				&& this.getInitTime() == config.getInitTime()
+				&& this.getSessionTime() == config.getSessionTime();
+	}
+
+	@Override
 	public String toString() {
 		return "HOST=" + host + " " + "root=" + root + " " + "username="
 				+ username + " " + "pasword=" + password + " " + "sessionTime="

@@ -103,7 +103,7 @@ public class Accessor {
 	private static Accessor instance = null;
 
 	private class DaemonThread extends Thread {
-		private boolean running;
+		volatile private boolean running;
 		private Accessor parent = null;
 
 		public DaemonThread(Accessor parent) {
@@ -275,10 +275,10 @@ public class Accessor {
 		public Watcher getTriggerWatcher() {
 			return triggerWatcher;
 		}
-
-		// 不确定这个函数的重载是否等于 == 的重载
-		public boolean equals(EventWatcher eventWatcher) {
-			return this.getTriggerWatcher() == eventWatcher.getTriggerWatcher();
+		
+		@Override
+		public boolean equals(Object eventWatcher) {
+			return this.getTriggerWatcher().equals(((EventWatcher) eventWatcher).getTriggerWatcher());
 		}
 
 		public EventWatcher(Watcher triggerWatcher, WatcherType watcherType) {
@@ -295,8 +295,7 @@ public class Accessor {
 			synchronized (zk) {
 				if (this.getWatcherType() == null) { // How can it be null?
 					return;
-
-				} else if (this.getWatcherType() == WatcherType.Children) {
+				} else if (this.getWatcherType().equals(WatcherType.Children)) {
 					if (childWatcherMap.containsKey(this)) {
 						try {
 							zk.getChildren(event.getPath(), this);
@@ -310,7 +309,7 @@ public class Accessor {
 					} else {
 						return;
 					}
-				} else if (this.getWatcherType() == WatcherType.Data) {
+				} else if (this.getWatcherType().equals(WatcherType.Data)) {
 					if (dataWatcherMap.containsKey(this)) {
 						try {
 							zk.exists(event.getPath(), this);
@@ -343,7 +342,7 @@ public class Accessor {
 			instance = new Accessor(config);
 			return instance;
 		}
-		if (instance.config != config) {
+		if (instance.config.equals(config)) {
 			instance = new Accessor(config);
 			return instance;
 		}
@@ -456,7 +455,7 @@ public class Accessor {
 				break;
 			} catch (KeeperException.NodeExistsException e) {
 				logger.warn("Node exists with path " + publish.getFullPath()
-						+ new String(publish.getValue()) + ". Sleep 10s and re-try.");
+						+ new String(publish.getValue()) + ". Sleep 10s and retry.");
 				Thread.sleep(10000);
 			}
 		}
