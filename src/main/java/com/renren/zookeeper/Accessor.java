@@ -4,6 +4,7 @@
 package com.renren.zookeeper;
 
 import java.io.IOException;
+import java.nio.channels.ClosedByInterruptException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +40,7 @@ import com.renren.zookeeper.accessor.Subscribe;
 public class Accessor {
 	private static Logger logger = LogManager.getLogger(Accessor.class
 			.getName());
-
+	private volatile boolean closed;
 	private Map<EventWatcher, Set<String>> dataWatcherMap = null;
 	private Map<EventWatcher, Set<String>> childWatcherMap = null;
 	// Management EventWatcher life-cycle
@@ -53,6 +54,7 @@ public class Accessor {
 	private Accessor(ZkConfig config) throws InterruptedException, IOException {
 		logger.info("Try connect to zk with config : " + config.toString());
 		this.config = config;
+		this.closed = false;
 		dataWatcherMap = new ConcurrentHashMap<EventWatcher, Set<String>>();
 		childWatcherMap = new ConcurrentHashMap<EventWatcher, Set<String>>();
 		dataOwnerMap = new ConcurrentHashMap<Object, Accessor.EventWatcher>();
@@ -65,6 +67,20 @@ public class Accessor {
 		}
 	}
 
+	private void close() {
+		this.closed = true;
+		daemon.close();
+		try {
+			daemon.join();
+			if (zk != null) {
+				zk.close();
+				zk = null;
+			}
+		} catch (InterruptedException e) {
+			e.printStackTrace(System.err);
+		}
+	}
+	
 	private void createConnection(ZkConfig config) throws InterruptedException,
 			IOException {
 		if (zk != null) {
@@ -89,13 +105,8 @@ public class Accessor {
 
 	@Override
 	protected void finalize() {
-		daemon.close();
-		try {
-			daemon.join();
-			zk.close();
-			zk = null;
-		} catch (InterruptedException e) {
-			e.printStackTrace(System.err);
+		if (!closed) {
+			this.close();
 		}
 	}
 
@@ -330,9 +341,13 @@ public class Accessor {
 	}
 
 	public boolean isAvailable() {
-		return this.zk.getState().equals(States.CONNECTED);
+		return (!isClosed()) && this.zk.getState().equals(States.CONNECTED);
 	}
 
+	public boolean isClosed() {
+		return this.closed;
+	}
+	
 	public synchronized static Accessor getInstance(ZkConfig config)
 			throws InterruptedException, IOException {
 		if (config == null) {
@@ -342,7 +357,7 @@ public class Accessor {
 			instance = new Accessor(config);
 			return instance;
 		}
-		if (instance.config.equals(config)) {
+		if (!instance.config.equals(config)) {
 			instance = new Accessor(config);
 			return instance;
 		}
