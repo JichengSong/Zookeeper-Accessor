@@ -2,6 +2,8 @@
 
 README version 0.1.0
 
+[![Build Status](https://drone.io/github.com/ZheYuan/Zookeeper-Accessor/status.png)](https://drone.io/github.com/ZheYuan/Zookeeper-Accessor/latest)
+
 A common accessor of zookeeper service implements with java. 
 Zookeeper-Accessor was made up of this components:
 
