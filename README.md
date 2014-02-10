@@ -73,9 +73,9 @@ First call with a vaild `ZkConfig` object:
 
 `Accessor accessor = Accessor.getInstance(config);`
 
-And then if wanna get the lastest singleton in somewhere, just call with a `NULL`:
+And then if wanna get the lastest singleton in somewhere, just call with a `null`:
 
-`Accessor accessor2 = Accessor.getInstance(NULL);`
+`Accessor accessor2 = Accessor.getInstance(null);`
 
 ### Using Publish Class
 
