@@ -94,7 +94,7 @@ public class Accessor {
 			e.printStackTrace(System.err);
 		}
 	}
-	
+
 	private void createConnection(ZkConfig config) throws InterruptedException,
 			IOException {
 		if (zk != null) {
@@ -300,10 +300,11 @@ public class Accessor {
 		public Watcher getTriggerWatcher() {
 			return triggerWatcher;
 		}
-		
+
 		@Override
 		public boolean equals(Object eventWatcher) {
-			return this.getTriggerWatcher().equals(((EventWatcher) eventWatcher).getTriggerWatcher());
+			return this.getTriggerWatcher().equals(
+					((EventWatcher) eventWatcher).getTriggerWatcher());
 		}
 
 		public EventWatcher(Watcher triggerWatcher, WatcherType watcherType) {
@@ -361,7 +362,7 @@ public class Accessor {
 	public boolean isClosed() {
 		return this.closed;
 	}
-	
+
 	public synchronized static Accessor getInstance(ZkConfig config)
 			throws InterruptedException, IOException {
 		if (config == null) {
@@ -424,6 +425,17 @@ public class Accessor {
 		dataOwnerMap.remove(owner);
 	}
 
+	public void createPresistentNode(String path, byte[] value)
+			throws IOException, KeeperException, InterruptedException {
+		if (!this.isAvailable()) {
+			throw new IOException("ZK is not available.");
+		}
+		if (value != null && value.length > 1024 * 1024) { // 1M
+			throw new IOException("Value too large.");
+		}
+		zk.create(path, value, Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+	}
+
 	public void createEphemerlNode(String path, byte[] value)
 			throws IOException, KeeperException, InterruptedException {
 		if (!this.isAvailable()) {
@@ -484,7 +496,8 @@ public class Accessor {
 				break;
 			} catch (KeeperException.NodeExistsException e) {
 				logger.warn("Node exists with path " + publish.getFullPath()
-						+ new String(publish.getValue()) + ". Sleep 10s and retry.");
+						+ new String(publish.getValue())
+						+ ". Sleep 10s and retry.");
 				Thread.sleep(10000);
 			}
 		}
