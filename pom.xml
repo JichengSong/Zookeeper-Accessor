@@ -59,6 +59,18 @@
 					</descriptorRefs>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<argLine>-Xmx1024m -Ddefault.config.path=./conf</argLine>
+					<directory>src/test/java</directory>
+					<includes>
+						<include>**/*.java</include>
+					</includes>
+					<forkMode>always</forkMode>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 	<dependencies>
