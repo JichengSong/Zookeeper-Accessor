@@ -100,6 +100,8 @@ public abstract class Subscribe {
 		}
 
 		/**
+		 * Internal method, I havn't think a good way to let it invisible.
+		 * 
 		 * @return the stat
 		 */
 		public Stat getStat() {
@@ -107,8 +109,9 @@ public abstract class Subscribe {
 		}
 
 		/**
-		 * @param stat
-		 *            the stat to set
+		 * Internal method, I havn't think a good way to let it invisible.
+		 * 
+		 * @param stat           
 		 */
 		public void setStat(Stat stat) {
 			this.stat = stat;
@@ -137,6 +140,12 @@ public abstract class Subscribe {
 		}
 	}
 
+	/**
+	 * A Subscribe instance only subscribe once.
+	 * 
+	 * @param accessor
+	 * @throws OperationNotSupportedException
+	 */
 	public synchronized void setAccessor(Accessor accessor)
 			throws OperationNotSupportedException {
 		if (this.accessor == null) {
@@ -145,23 +154,50 @@ public abstract class Subscribe {
 			throw new OperationNotSupportedException("");
 		}
 	}
-
+	
+	/**
+	 * Get first level directory service id.
+	 * 
+	 * @return serviceId
+	 */
 	public String getServiceId() {
 		return serviceId;
 	}
-
+	
+	/**
+	 * Get second level directory version.
+	 * @return version
+	 */
 	public String getVersion() {
 		return version;
 	}
-
+	
+	/**
+	 * Get third level directory sharding.
+	 * 
+	 * @return sharding
+	 */
 	public String getSharding() {
 		return sharding;
 	}
-
+	
+	/**
+	 * If this instance has published then get the accessor of this.
+	 * 
+	 * @return null or accessor.
+	 */
 	public Accessor getAccessor() {
 		return accessor;
 	}
-
+	
+	/**
+	 * Construction Function.
+	 * Path like "/serviceId/version/sharding".
+	 * 
+	 * @param serviceId
+	 * @param version
+	 * @param sharding
+	 */
 	public Subscribe(String serviceId, String version, String sharding) {
 		this.serviceId = serviceId;
 		this.version = version;
@@ -171,16 +207,18 @@ public abstract class Subscribe {
 	}
 
 	/**
-	 * Get full path of this ephemeral node, the value is equal
+	 * Get full path of this subscribe node, the value is equal
 	 * "/serviceId/version/sharding".
 	 * 
-	 * @return
+	 * @return "/serviceId/version/sharding".
 	 */
 	public String getFullPath() {
 		return '/' + getServiceId() + '/' + getVersion() + '/' + getSharding();
 	}
 
 	/**
+	 * Internal method, I havn't think a good way to let it invisible.
+	 * 
 	 * @return the childrenWatcher
 	 */
 	public ChildrenWatcher getChildrenWatcher() {
@@ -352,9 +390,29 @@ public abstract class Subscribe {
 		return accessor.getContent(getFullPath() + '/' + child);
 	}
 
+	/**
+	 * When count of endpoints changed, this method will be trigger.
+	 * The newest endpints list on zookeeper is equal to 
+	 * {originList - decreaceList + increaceList}, and the newest
+	 * endpoints list will be next originList if new trigger happen.
+	 * When subscribe first register to accessor,
+	 * this method will trigger and originList will
+	 * be null.
+	 *  
+	 * @param originList
+	 * @param increaceList
+	 * @param decreaceList
+	 */
 	public abstract void childChanged(List<String> originList,
 			List<String> increaceList, List<String> decreaceList);
-
+	
+	/**
+	 * When endpoint's content changed, this method will be trigger.
+	 * 
+	 * @param path endpoint's name
+	 * @param oldValue old value of endpoint
+	 * @param newValue new value of endpoint
+	 */
 	public abstract void contentChanged(String path, byte[] oldValue,
 			byte[] newValue);
 }

@@ -71,7 +71,12 @@ public final class Publish {
 	public void setStat(Stat stat) {
 		this.stat = stat;
 	}
-
+	
+	/**
+	 * Internal method, I havn't think a good way to let it invisible.
+	 * 
+	 * @return ephemeral watcher
+	 */
 	public EphemeralWatcher getEphemeralWatcher() {
 		return ephemeralWatcher;
 	}
@@ -115,13 +120,18 @@ public final class Publish {
 	 * Get full path of this ephemeral node, the value is equal
 	 * "/serviceId/version/sharding/key".
 	 * 
-	 * @return
+	 * @return "/serviceId/version/sharding/key"
 	 */
 	public String getFullPath() {
 		return '/' + getServiceId() + '/' + getVersion() + '/' + getSharding()
 				+ '/' + getKey();
 	}
 
+	/**
+	 * If this instance has published then get the accessor of this.
+	 * 
+	 * @return null or accessor.
+	 */
 	public Accessor getAccessor() {
 		return accessor;
 	}
@@ -141,6 +151,16 @@ public final class Publish {
 		}
 	}
 
+	/**
+	 * Construction Function.
+	 * Path like "/serviceId/version/sharding/key".
+	 * 
+	 * @param serviceId
+	 * @param version
+	 * @param sharding
+	 * @param key
+	 * @param value
+	 */
 	public Publish(String serviceId, String version, String sharding,
 			String key, byte[] value) {
 		this.serviceId = serviceId;
@@ -151,10 +171,23 @@ public final class Publish {
 		this.ephemeralWatcher = new EphemeralWatcher(this);
 	}
 
+	/**
+	 * Value will be saved on zookeeper with auto synchronized.
+	 * 
+	 * @return Get publish's value.
+	 */
 	public byte[] getValue() {
 		return value;
 	}
 
+	/**
+	 * Set local value and auto synchronize to zookeeper.
+	 * 
+	 * @param value
+	 * @throws KeeperException
+	 * @throws InterruptedException
+	 * @throws IOException
+	 */
 	public void setValue(byte[] value) throws KeeperException,
 			InterruptedException, IOException {
 		if (accessor != null) {
@@ -163,22 +196,50 @@ public final class Publish {
 		this.value = value;
 	}
 
+	/**
+	 * Get first level directory service id.
+	 * 
+	 * @return serviceId
+	 */
 	public String getServiceId() {
 		return serviceId;
 	}
-
+	
+	/**
+	 * Get second level directory version.
+	 * @return version
+	 */
 	public String getVersion() {
 		return version;
 	}
 
+	/**
+	 * Get third level directory sharding.
+	 * 
+	 * @return sharding
+	 */
+	
 	public String getSharding() {
 		return sharding;
 	}
 
+	/**
+	 * Get endpoint.
+	 * 
+	 * @return endpoint
+	 */
+	
 	public String getKey() {
 		return key;
 	}
 
+	/**
+	 * Remove publish in zookeeper forever.
+	 * 
+	 * @throws InterruptedException
+	 * @throws KeeperException
+	 * @throws IOException
+	 */
 	public void die() throws InterruptedException, KeeperException, IOException {
 		if (accessor != null) {
 			accessor.delChildrenWatcher(this);
