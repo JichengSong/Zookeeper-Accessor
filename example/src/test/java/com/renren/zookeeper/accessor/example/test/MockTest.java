@@ -16,49 +16,20 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.renren.zookeeper.accessor.test;
+package com.renren.zookeeper.accessor.example.test;
 
-import java.io.IOException;
+public class MockTest {
 
-import org.apache.zookeeper.KeeperException;
 
-import com.renren.zookeeper.Accessor;
-import com.renren.zookeeper.ZkConfig;
-
-/**
- * @author zhe
- * 
- */
-public class DeleteNodeTest {
+	public MockTest() {
+	}
 
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		ZkConfig config = new ZkConfig();
-		Accessor accessor = null;
-		try {
-			accessor = Accessor.getInstance(config);
+		// TODO Auto-generated method stub
 
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		while (true) {
-			try {
-				Thread.sleep(100);
-				if (accessor != null) {
-					accessor.deleteNode("/test.service/1/0/PublishTestHandle");
-				}
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			} catch (KeeperException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
 	}
 
 }

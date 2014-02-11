@@ -16,7 +16,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.renren.zookeeper.accessor.test;
+package com.renren.zookeeper.accessor.example;
 
 import com.renren.zookeeper.Accessor;
 import com.renren.zookeeper.ZkConfig;
@@ -26,7 +26,7 @@ import com.renren.zookeeper.accessor.Publish;
  * @author ZheYuan
  * 
  */
-public class PublishTest {
+public class SocketServer {
 
 	/**
 	 * @param args

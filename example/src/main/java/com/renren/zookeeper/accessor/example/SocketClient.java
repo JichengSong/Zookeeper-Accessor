@@ -16,7 +16,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.renren.zookeeper.accessor.test;
+package com.renren.zookeeper.accessor.example;
 
 import java.util.List;
 
@@ -28,7 +28,7 @@ import com.renren.zookeeper.accessor.Subscribe;
  * @author ZheYuan
  * 
  */
-public class SubscribeTest {
+public class SocketClient {
 
 	private static class SubscribeInstance extends Subscribe {
 
