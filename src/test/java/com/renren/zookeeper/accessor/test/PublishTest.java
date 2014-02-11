@@ -41,7 +41,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.renren.zookeeper.Accessor;
-import com.renren.zookeeper.Accessor.WatcherType;
 import com.renren.zookeeper.ZkConfig;
 import com.renren.zookeeper.accessor.Publish;
 
