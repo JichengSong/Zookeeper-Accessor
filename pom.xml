@@ -22,12 +22,14 @@
 					<include>**/*.java</include>
 				</includes>
 			</resource>
+			<!--
 			<resource>
 				<directory>src/test/java</directory>
 				<includes>
 					<include>**/*.java</include>
 				</includes>
 			</resource>
+			-->
 			<resource>
 				<directory>.</directory>
 				<includes>
