@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="Zookeeper-accessor : This is a common accessor of zookeeper client implements with java" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Zookeeper-accessor</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/ZheYuan/Zookeeper-Accessor">View on GitHub</a>
+
+          <h1 id="project_title">Zookeeper-accessor</h1>
+          <h2 id="project_tagline">This is a common accessor of zookeeper client implements with java</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/ZheYuan/Zookeeper-Accessor/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/ZheYuan/Zookeeper-Accessor/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1>
+<a name="zookeeper-accessor" class="anchor" href="#zookeeper-accessor"><span class="octicon octicon-link"></span></a>Zookeeper-Accessor</h1>
+
+<p>README version 0.1.0</p>
+
+<p><a href="https://drone.io/github.com/ZheYuan/Zookeeper-Accessor/latest"><img src="https://drone.io/github.com/ZheYuan/Zookeeper-Accessor/status.png" alt="Build Status"></a></p>
+
+<p>A common accessor of zookeeper service implements with java. 
+Zookeeper-Accessor was made up of this components:</p>
+
+<ul>
+<li>Publish: puslish a service with path /root(in config file)/service.id/version/sharding/endpoint:value.</li>
+<li>Subscribe: subcribe a service with path /root(in config file)/service.id/version/sharding.</li>
+<li>Accessor: client of zookeeper and auto reconnet zookeeper when recive exceptions.</li>
+</ul><h2>
+<a name="contact" class="anchor" href="#contact"><span class="octicon octicon-link"></span></a>Contact</h2>
+
+<ul>
+<li>Email: yizer16[at]163[dot]com, yizer16[at]gmail[dot]com</li>
+</ul><h2>
+<a name="getting-started" class="anchor" href="#getting-started"><span class="octicon octicon-link"></span></a>Getting Started</h2>
+
+<h3>
+<a name="getting-zookeeper-accessor" class="anchor" href="#getting-zookeeper-accessor"><span class="octicon octicon-link"></span></a>Getting Zookeeper-Accessor</h3>
+
+<p>The latest release code is available at <a href="https://github.com/ZheYuan/Zookeeper-Accessor/releases">Github</a>.</p>
+
+<h3>
+<a name="building" class="anchor" href="#building"><span class="octicon octicon-link"></span></a>Building</h3>
+
+<p>You can build Zookeeper-Accessor from source:</p>
+
+<p>You need setup maven to build this project:
+<a href="http://maven.apache.org/">http://maven.apache.org/</a></p>
+
+<p>Run this command and get the source:</p>
+
+<p><code>git clone https://github.com/ZheYuan/Zookeeper-Accessor.git</code></p>
+
+<p>Enter workcopy and install to local:</p>
+
+<pre><code>cd Zookeeper-Accessor
+mvn install
+</code></pre>
+
+<p>Or</p>
+
+<pre><code>cd Zookeeper-Accessor
+mvn assembly:assembly
+</code></pre>
+
+<p>This will generate two jars in <code>./target</code> directory.</p>
+
+<h2>
+<a name="using-zookeeper-accessor" class="anchor" href="#using-zookeeper-accessor"><span class="octicon octicon-link"></span></a>Using Zookeeper-Accessor</h2>
+
+<h3>
+<a name="using-zkconfig-class" class="anchor" href="#using-zkconfig-class"><span class="octicon octicon-link"></span></a>Using ZkConfig Class</h3>
+
+<p><code>default.config.path</code> is used to point out config file directory.</p>
+
+<p>When use Accessor with config file in <code>./conf</code>, we can run class:</p>
+
+<p><code>java -Ddefault.config.path=./conf</code></p>
+
+<p>and write one line code:</p>
+
+<p><code>ZkConfig config = new ZkConfig();</code></p>
+
+<p>Or you can use ZkConfig provide publish method to set attribute.</p>
+
+<h3>
+<a name="using-accessor-class" class="anchor" href="#using-accessor-class"><span class="octicon octicon-link"></span></a>Using Accessor Class</h3>
+
+<p>This is a singleton client object of zookeper.</p>
+
+<p>First call with a vaild <code>ZkConfig</code> object:</p>
+
+<p><code>Accessor accessor = Accessor.getInstance(config);</code></p>
+
+<p>And then if wanna get the lastest singleton in somewhere, just call with a <code>null</code>:</p>
+
+<p><code>Accessor accessor2 = Accessor.getInstance(null);</code></p>
+
+<h3>
+<a name="using-publish-class" class="anchor" href="#using-publish-class"><span class="octicon octicon-link"></span></a>Using Publish Class</h3>
+
+<p>This class is a service instance use ephemeral node of zookeeper. Each Publish object only publish once, or it will throws an <code>OperationNotSupportedException</code>.</p>
+
+<pre><code>Publish publish = new Publish("test.service", "1", "0",
+                            "PublishTestHandle", "127.0.0.1:80".getBytes());
+accessor.publishService(publish);
+// Remove the service
+publish.die();
+// This object's life cycle is same to accessor.
+accessor.publishService(new Publish("test.service", "1", "0", "PublishTest", "127.0.0.1:81".getBytes());
+</code></pre>
+
+<h3>
+<a name="using-subscribe-class" class="anchor" href="#using-subscribe-class"><span class="octicon octicon-link"></span></a>Using Subscribe Class</h3>
+
+<p>This class is a client instance. Each Subscribe objcet only subcribe once, or it will throws an <code>OperationNotSupportedException</code>.</p>
+
+<p>Subscribe class is same to Publish class.</p>
+
+<h2>
+<a name="license" class="anchor" href="#license"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Zookeeper-Accessor is under the gpl v3.0 license. See the <a href="https://github.com/ZheYuan/Zookeeper-Accessor/blob/master/LICENSE">LICENSE</a> file for details.</p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Zookeeper-accessor maintained by <a href="https://github.com/ZheYuan">ZheYuan</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
