@@ -203,7 +203,7 @@ public class Accessor {
 
 		@Override
 		public void process(WatchedEvent event) {
-			if (event.getType() == EventType.None) {
+			//if (event.getType() == EventType.None) {
 				if (event.getState() == KeeperState.SyncConnected) {
 					counter.countDown();
 					logger.warn("Connected with server");
@@ -263,7 +263,7 @@ public class Accessor {
 						}
 					}
 				}
-			}
+			//}
 		}
 	}
 
@@ -318,10 +318,19 @@ public class Accessor {
 
 		@Override
 		public void process(WatchedEvent event) {
+		    if (event == null) {
+		        logger.error("Event is null.");
+		        return;
+		    }
+		    if (event.getPath() == null) {
+		        return;
+		    }
 			synchronized (zk) {
 				if (this.getWatcherType() == null) { // How can it be null?
+				    logger.error(event.toString());
 					return;
 				} else if (this.getWatcherType().equals(WatcherType.Children)) {
+				    logger.info(event.toString());
 					if (childWatcherMap.containsKey(this)) {
 						try {
 							zk.getChildren(event.getPath(), this);
@@ -336,6 +345,7 @@ public class Accessor {
 						return;
 					}
 				} else if (this.getWatcherType().equals(WatcherType.Data)) {
+				    logger.info(event.toString());
 					if (dataWatcherMap.containsKey(this)) {
 						try {
 							zk.exists(event.getPath(), this);
